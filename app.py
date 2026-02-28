@@ -1007,6 +1007,5 @@ def init_db():
                     logger.debug(f"Inserted course: {course[1]} (CRN: {course[0]})")
             db.session.commit()
         logger.info(f"Database initialized with {inserted} new courses")
-if __name__ == '__main__':
-    init_db()
-    app.run(debug=True, port=5001)
+if __name__ == "__main__":
+    app.run()
