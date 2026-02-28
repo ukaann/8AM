@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Drexel Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <img src="{{ url_for('static', filename='drexel_logo.png') }}" alt="Drexel Logo" class="logo">
+            <ul class="sidebar-menu">
+                <li><a href="{{ url_for('schedule') }}">Schedule</a></li>
+                <li><a href="{{ url_for('saved_schedules') }}">Saved Schedules</a></li>
+                <li><a href="{{ url_for('courses') }}">My Courses</a></li>
+                <li><a href="{{ url_for('about') }}">About</a></li>
+                <li><a href="{{ url_for('profile') }}">Account Settings</a></li>
+            </ul>
+        </div>
+        <div class="main-content">
+            <nav class="navbar">
+                <span class="time">8 AM</span>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('dashboard') }}">Home</a></li>
+                    <li><a href="{{ url_for('courses') }}">Courses</a></li>
+                    <li><a href="{{ url_for('about') }}">About</a></li>
+                    <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                </ul>
+            </nav>
+            <h1>Your Profile</h1>
+            <div class="profile-container">
+                <div class="profile-pic-section">
+                    {% if user.profilePic %}
+                        <img id="profile-pic" src="data:image/jpeg;base64,{{ user.profilePic|b64encode }}" alt="Profile Picture" class="profile-pic">
+                    {% else %}
+                        <img id="profile-pic" src="{{ url_for('static', filename='drexel_logo.png') }}" alt="Profile Picture" class="profile-pic">
+                    {% endif %}
+                    <form id="photoForm" action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data">
+                        <input type="file" id="upload-pic" name="profilePic" accept="image/*" style="display: none;">
+                        <button type="button" id="edit-pic-btn">Change Picture</button>
+                        <button type="submit" style="display: none;" id="save-pic-btn">Save Picture</button>
+                    </form>
+                </div>                
+                <div class="profile-details" id="profileDetails">
+                    <p><strong>Email:</strong> <span id="display-email">{{ user.email }}</span></p>
+                    <p><strong>First Name:</strong> <span id="display-firstName">{{ user.firstName }}</span></p>
+                    <p><strong>Last Name:</strong> <span id="display-lastName">{{ user.lastName }}</span></p>
+                    <p><strong>Major:</strong> <span id="display-major">{{ user.major }}</span></p>
+                    <p><strong>Minor:</strong> <span id="display-minor">{{ user.minor or 'N/A' }}</span></p>
+                    <p><strong>Year:</strong> <span id="display-year">{{ user.year }}</span></p>
+                    <p><strong>Co-Op Cycle:</strong> <span id="display-coOp">{{ user.coOp or 'N/A' }}</span></p>
+                    <button id="edit-btn">Edit Profile</button>
+                </div>
+                <form id="profileEditForm" class="profile-edit-form" style="display: none;" action="{{ url_for('profile') }}" method="POST">
+                    <input type="hidden" name="form_type" value="profile">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" value="{{ user.firstName }}" required>
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" value="{{ user.lastName }}" required>
+                    <label for="major">Major</label>
+                    <input type="text" id="major" name="major" value="{{ user.major }}" required>
+                    <label for="minor">Minor</label>
+                    <input type="text" id="minor" name="minor" value="{{ user.minor or '' }}">
+                    <label for="year">Year</label>
+                    <select id="year" name="year" required>
+                        <option value="{{ user.year }}">{{ user.year }}</option>
+                        <option value="freshman">Freshman</option>
+                        <option value="sophomore">Sophomore</option>
+                        <option value="junior">Junior</option>
+                        <option value="senior">Senior</option>
+                    </select>
+                    <label for="coOp">Co-Op Cycle</label>
+                    <select id="coOp" name="coOp">
+                        <option value="{{ user.coOp or '' }}">{{ user.coOp or 'Select Co-Op Cycle' }}</option>
+                        <option value="fall-winter">Fall-Winter</option>
+                        <option value="spring-summer">Spring-Summer</option>
+                    </select>
+                    <button type="submit">Save Changes</button>
+                    <button type="button" id="cancel-edit">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('edit-btn').addEventListener('click', function() {
+            document.getElementById('profileDetails').style.display = 'none';
+            document.getElementById('profileEditForm').style.display = 'block';
+        });
+
+        document.getElementById('cancel-edit').addEventListener('click', function() {
+            document.getElementById('profileDetails').style.display = 'block';
+            document.getElementById('profileEditForm').style.display = 'none';
+        });
+
+        document.getElementById('edit-pic-btn').addEventListener('click', function() {
+            document.getElementById('upload-pic').click();
+        });
+
+        document.getElementById('upload-pic').addEventListener('change', function() {
+            document.getElementById('save-pic-btn').click();
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93302f573e48e5b6',t:'MTc0NTEwNTM3NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

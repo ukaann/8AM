@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Schedules</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <img src="{{ url_for('static', filename='drexel_logo.png') }}" alt="Drexel Logo" class="logo">
+            <ul class="sidebar-menu">
+                <li><a href="{{ url_for('schedule') }}">Schedule</a></li>
+                <li><a href="{{ url_for('saved_schedules') }}">Saved Schedules</a></li>
+                <li><a href="{{ url_for('courses') }}">My Courses</a></li>
+                <li><a href="{{ url_for('about') }}">About</a></li>
+                <li><a href="{{ url_for('profile') }}">Account Settings</a></li>
+            </ul>
+        </div>
+        <div class="main-content">
+            <nav class="navbar">
+                <span class="time">8 AM</span>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('dashboard') }}">Home</a></li>
+                    <li><a href="{{ url_for('courses') }}">Courses</a></li>
+                    <li><a href="{{ url_for('about') }}">About</a></li>
+                    <li><a href="{{ url_for('profile') }}">Profile</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                </ul>
+            </nav>
+            <h2>Your Saved Schedules</h2>
+            {% if schedules %}
+                <div class="table-container">
+                    <table class="table table-bordered schedule-table">
+                        <thead>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <th class="{% if schedule.is_priority %}priority-header{% endif %} {% if schedule.is_favorite %}favorite-header{% endif %}">
+                                        Schedule #{{ schedule.id }}
+                                        {% if schedule.is_priority %}<span class="ms-2 priority-icon">👑 Priority</span>{% endif %}
+                                        {% if schedule.is_favorite %}<span class="ms-2 favorite-icon">★ Favorite</span>{% endif %}
+                                    </th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <td class="{% if schedule.is_priority %}priority-cell{% endif %} {% if schedule.is_favorite %}favorite-cell{% endif %}">
+                                        <strong>Courses:</strong><br>
+                                        {{ schedule.courses|join(', ') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <td class="{% if schedule.is_priority %}priority-cell{% endif %} {% if schedule.is_favorite %}favorite-cell{% endif %}">
+                                        <strong>Time:</strong><br>
+                                        {{ schedule.start_time }} - {{ schedule.end_time }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <td class="{% if schedule.is_priority %}priority-cell{% endif %} {% if schedule.is_favorite %}favorite-cell{% endif %}">
+                                        <strong>Spacing:</strong><br>
+                                        {{ schedule.spacing|capitalize }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <td class="{% if schedule.is_priority %}priority-cell{% endif %} {% if schedule.is_favorite %}favorite-cell{% endif %}">
+                                        <strong>Created:</strong><br>
+                                        {{ schedule.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <td class="{% if schedule.is_priority %}priority-cell{% endif %} {% if schedule.is_favorite %}favorite-cell{% endif %}">
+                                        <strong>Total Credits:</strong><br>
+                                        {{ schedule.total_credits }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                {% for schedule in schedules %}
+                                    <td class="{% if schedule.is_priority %}priority-cell{% endif %} {% if schedule.is_favorite %}favorite-cell{% endif %}">
+                                        <div class="action-buttons" data-schedule-id="{{ schedule.id }}">
+                                            <a href="{{ url_for('display_schedule', schedule_id=schedule.id) }}" class="export-btn">View</a>
+                                            <form action="{{ url_for('delete_schedule', schedule_id=schedule.id) }}" method="POST" style="display:inline;">
+                                                <button type="submit" class="export-btn delete-btn" onclick="return confirm('Are you sure you want to delete Schedule #{{ schedule.id }}?');">Delete</button>
+                                            </form>
+                                            <form action="{{ url_for('toggle_favorite', schedule_id=schedule.id) }}" method="POST" class="ajax-form" data-type="favorite" style="display:inline;">
+                                                <button type="submit" class="export-btn favorite-btn {% if schedule.is_favorite %}favorite-active{% endif %}">
+                                                    ★
+                                                </button>
+                                            </form>
+                                            <form action="{{ url_for('set_priority', schedule_id=schedule.id) }}" method="POST" class="ajax-form" data-type="priority" style="display:inline;">
+                                                <button type="submit" class="export-btn priority-btn {% if schedule.is_priority %}priority-active{% endif %}">
+                                                    👑
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>No saved schedules found. Generate a new schedule to get started!</p>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const forms = document.querySelectorAll('.ajax-form');
+            forms.forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    const scheduleId = form.closest('.action-buttons').dataset.scheduleId;
+                    const type = form.dataset.type;
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            console.log(`Updated ${type} for Schedule #${scheduleId}:`, data);
+                            const button = form.querySelector('button');
+                            if (type === 'favorite') {
+                                button.classList.toggle('favorite-active', data.is_favorite);
+                            } else if (type === 'priority') {
+                                // Deselect all other priorities
+                                document.querySelectorAll('.priority-btn.priority-active').forEach(activeBtn => {
+                                    if (activeBtn !== button) {
+                                        activeBtn.classList.remove('priority-active');
+                                        const otherScheduleId = activeBtn.closest('.action-buttons').dataset.scheduleId;
+                                        const otherRow = activeBtn.closest('tr');
+                                        const otherCells = otherRow.querySelectorAll('td');
+                                        otherCells.forEach(cell => cell.classList.remove('priority-cell'));
+                                        const otherHeader = document.querySelector(`th:contains("Schedule #${otherScheduleId}")`);
+                                        if (otherHeader) otherHeader.classList.remove('priority-header');
+                                    }
+                                });
+                                button.classList.toggle('priority-active', data.is_priority);
+                            }
+
+                            // Update table row and header classes
+                            const row = form.closest('tr');
+                            const cells = row.querySelectorAll('td');
+                            cells.forEach(cell => {
+                                cell.classList.toggle('priority-cell', data.is_priority);
+                                cell.classList.toggle('favorite-cell', data.is_favorite);
+                            });
+                            const header = document.querySelector(`th:contains("Schedule #${scheduleId}")`);
+                            if (header) {
+                                header.classList.toggle('priority-header', data.is_priority);
+                                header.classList.toggle('favorite-header', data.is_favorite);
+                                console.log(`Header classes for Schedule #${scheduleId}:`, header.classList);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                });
+            });
+
+            // Custom :contains selector polyfill
+            HTMLElement.prototype.contains = function(text) {
+                return this.textContent.includes(text);
+            };
+        });
+    </script>
+</body>
+</html>

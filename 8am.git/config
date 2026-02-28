@@ -1,0 +1,13 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	ignorecase = true
+	precomposeunicode = true
+[remote "origin"]
+	url = https://gitlab.cci.drexel.edu/cid/2425/ws1023/60/06/8am.git
+	fetch = +refs/*:refs/*
+	mirror = true
+[remote "github"]
+	url = https://github.com/ukaann/8AM-CI.git
+	fetch = +refs/heads/*:refs/remotes/github/*

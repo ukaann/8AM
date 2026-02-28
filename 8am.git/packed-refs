@@ -1,0 +1,7 @@
+# pack-refs with: peeled fully-peeled sorted 
+e567904c04b0c466eb0260c28ccff558ca5e6624 refs/heads/19-interface-design
+9c8fb78dfa5ec81178ec5009b902a5ee71b2f627 refs/heads/45-fetch-course-data-from-cci-term-master-for-cs-majors-fetch-ci-requirements
+b11d43a1527296539470ee116d79665e4f5d7ca2 refs/heads/main
+ece35631560f1d0a1473930dfa8647b59616dbfa refs/heads/revert-dc6fb95c
+ece35631560f1d0a1473930dfa8647b59616dbfa refs/merge-requests/1/head
+fb4613f7c0892ec39ea2614d5f5bd2884f983b2f refs/merge-requests/1/merge

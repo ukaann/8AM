@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Schedule - Drexel Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        /* Custom styles for the searchable dropdown */
+        .select-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .search-dropdown {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .dropdown-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color:#07294E;
+            border: 1px solid #ccc;
+            border-top: none;
+            z-index: 1000;
+            display: none;
+            border-radius: 0 0 4px 4px;
+        }
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .dropdown-item:hover {
+            background-color: #07294E;
+        }
+        .visible {
+            display: block;
+        }
+        .hidden-select {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <img src="{{ url_for('static', filename='drexel_logo.png') }}" alt="Drexel Logo" class="logo">
+            <ul class="sidebar-menu">
+                <li><a href="{{ url_for('schedule') }}" class="active">Schedule</a></li>
+                <li><a href="{{ url_for('saved_schedules') }}">Saved Schedules</a></li>
+                <li><a href="{{ url_for('courses') }}">My Courses</a></li>
+                <li><a href="#">My Progress</a></li>
+                <li><a href="{{ url_for('profile') }}">Account Settings</a></li>
+            </ul>
+        </div>
+        <div class="main-content">
+            <nav class="navbar">
+                <span class="time">8 AM</span>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('dashboard') }}">Home</a></li> 
+                    <li><a href="{{ url_for('courses') }}">Courses</a></li>
+                    <li><a href="#">About</a></li>
+                    <li><a href="{{ url_for('profile') }}">Profile</a></li>  
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li> 
+                </ul>
+            </nav>
+            <h1>Create Your Schedule</h1>
+            <div class="scheduler-container">
+                <form action="{{ url_for('save_schedule') }}" method="POST" id="scheduleForm">
+                    <h2>Course Selection</h2>
+                    <div class="course-selection" id="course-selection">
+                        <!-- Initially show 5 course selection fields -->
+                        {% for i in range(1, 6) %}
+                            <div class="select-container">
+                                <label for="course{{ i }}">Course {{ i }}</label>
+                                <div class="search-dropdown">
+                                    <input type="text" class="search-input" id="search{{ i }}" placeholder="Search or select a course" autocomplete="off">
+                                    <div class="dropdown-list" id="dropdown{{ i }}"></div>
+                                </div>
+                                <select name="course{{ i }}" id="course{{ i }}" class="hidden-select" onchange="updateCreditTotal()">
+                                    <option value="" data-credits="0">Select a course</option>
+                                    {% for course in courses %}
+                                        <option value="{{ course.course_code }}" data-credits="{{ course.credits | default(3) }}">{{ course.course_code }} - {{ course.course_name }} ({{ course.credits | default(3) }} credits)</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <!-- Display total credits -->
+                    <div id="credit-total">
+                        Total Credits: <span id="credit-count">0</span> (Max 20)
+                    </div>
+                    <!-- Button to add more course fields -->
+                    <button type="button" id="addCourseBtn" class="add-course-btn">Add More Course</button>
+                
+                    <h2>Preferences</h2>
+                    <label for="startTime">Preferred Start Time</label>
+                    <select name="startTime" id="startTime" required>
+                        <option value="08:00AM">8:00 AM</option>
+                        <option value="09:00AM">9:00 AM</option>
+                        <option value="10:00AM">10:00 AM</option>
+                        <option value="11:00AM">11:00 AM</option>
+                        <option value="12:00PM">12:00 PM</option>
+                    </select>
+                    <label for="endTime">Preferred End Time</label>
+                    <select name="endTime" id="endTime" required>
+                        <option value="12:00PM">12:00 PM</option>
+                        <option value="01:00PM">1:00 PM</option>
+                        <option value="02:00PM">2:00 PM</option>
+                        <option value="03:00PM">3:00 PM</option>
+                        <option value="04:00PM">4:00 PM</option>
+                    </select>
+                    <label for="spacing">Course Spacing</label>
+                    <select name="spacing" id="spacing" required>
+                        <option value="compact">Compact</option>
+                        <option value="spaced-out">Spaced Out</option>
+                    </select>
+                    <button type="submit" class="generate-btn">Generate Schedule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to add new course selection fields
+        let courseCount = 5; // Start with 5 courses
+    
+        document.getElementById('addCourseBtn').addEventListener('click', function() {
+            courseCount++;
+            
+            // Create a new container for the course
+            const container = document.createElement('div');
+            container.className = 'select-container';
+            
+            // Create label
+            const newCourseLabel = document.createElement('label');
+            newCourseLabel.setAttribute('for', `course${courseCount}`);
+            newCourseLabel.textContent = `Course ${courseCount}`;
+            
+            // Create search dropdown
+            const searchDropdown = document.createElement('div');
+            searchDropdown.className = 'search-dropdown';
+            
+            // Create search input
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.className = 'search-input';
+            searchInput.id = `search${courseCount}`;
+            searchInput.placeholder = 'Search or select a course';
+            searchInput.autocomplete = 'off';
+            
+            // Create dropdown list
+            const dropdownList = document.createElement('div');
+            dropdownList.className = 'dropdown-list';
+            dropdownList.id = `dropdown${courseCount}`;
+            
+            // Create hidden select
+            const newCourseSelect = document.createElement('select');
+            newCourseSelect.name = `course${courseCount}`;
+            newCourseSelect.id = `course${courseCount}`;
+            newCourseSelect.className = 'hidden-select';
+            newCourseSelect.setAttribute('onchange', 'updateCreditTotal()');
+            newCourseSelect.innerHTML = `<option value="" data-credits="0">Select a course</option>
+                {% for course in courses %}
+                    <option value="{{ course.course_code }}" data-credits="{{ course.credits }}">{{ course.course_code }} - {{ course.course_name }} ({{ course.credits }} credits)</option>
+                {% endfor %}`;
+            
+            // Append elements to container
+            searchDropdown.appendChild(searchInput);
+            searchDropdown.appendChild(dropdownList);
+            container.appendChild(newCourseLabel);
+            container.appendChild(searchDropdown);
+            container.appendChild(newCourseSelect);
+            
+            // Append the container to the course selection
+            const courseSelection = document.getElementById('course-selection');
+            courseSelection.appendChild(container);
+            
+            // Initialize the search functionality for the new field
+            initializeSearch(courseCount);
+        });
+    
+        // Function to initialize search functionality for a field
+        function initializeSearch(index) {
+            const searchInput = document.getElementById(`search${index}`);
+            const dropdownList = document.getElementById(`dropdown${index}`);
+            const select = document.getElementById(`course${index}`);
+            
+            // Function to populate dropdown list based on search
+            function populateDropdown(searchText) {
+                // Clear previous items
+                dropdownList.innerHTML = '';
+                
+                // Get all options from the select
+                const options = Array.from(select.options);
+                
+                // Filter options based on search text
+                const filteredOptions = options.filter(option => {
+                    if (!option.value) return false; // Skip the empty option
+                    return option.text.toLowerCase().includes(searchText.toLowerCase());
+                });
+                
+                // Add filtered options to dropdown
+                filteredOptions.forEach(option => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.textContent = option.text;
+                    item.setAttribute('data-value', option.value);
+                    
+                    item.addEventListener('click', function() {
+                        searchInput.value = option.text;
+                        select.value = option.value;
+                        dropdownList.classList.remove('visible');
+                        updateCreditTotal();
+                    });
+                    
+                    dropdownList.appendChild(item);
+                });
+                
+                // Show dropdown if we have results
+                if (filteredOptions.length > 0) {
+                    dropdownList.classList.add('visible');
+                } else {
+                    dropdownList.classList.remove('visible');
+                }
+            }
+            
+            // Event listeners
+            searchInput.addEventListener('focus', function() {
+                populateDropdown(this.value);
+            });
+            
+            searchInput.addEventListener('input', function() {
+                populateDropdown(this.value);
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !dropdownList.contains(e.target)) {
+                    dropdownList.classList.remove('visible');
+                }
+            });
+            
+            // Initialize with course text if a value is already selected
+            if (select.value) {
+                const selectedOption = select.options[select.selectedIndex];
+                searchInput.value = selectedOption.text;
+            }
+        }
+        
+        // Function to update total credits display
+        function updateCreditTotal() {
+            let totalCredits = 0;
+            const uniqueCourses = new Set();
+            for (let i = 1; i <= courseCount; i++) {
+                const select = document.getElementById(`course${i}`);
+                if (select && select.value && !uniqueCourses.has(select.value)) {
+                    const credits = parseInt(select.options[select.selectedIndex].getAttribute('data-credits')) || 0;
+                    totalCredits += credits;
+                    uniqueCourses.add(select.value);
+                }
+            }
+            const creditCount = document.getElementById('credit-count');
+            creditCount.textContent = totalCredits;
+            if (totalCredits > 20) {
+                creditCount.classList.add('red');
+                alert('Total credits exceed 20. Please select fewer courses.');
+            } else {
+                creditCount.classList.remove('red');
+            }
+        }
+        
+        // Initialize search for initial fields
+        for (let i = 1; i <= 5; i++) {
+            initializeSearch(i);
+        }
+    
+        // Validate form before submission
+        document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+            let hasCourse = false;
+            for (let i = 1; i <= courseCount; i++) {
+                const select = document.getElementById(`course${i}`);
+                if (select && select.value && select.value !== "") {
+                    hasCourse = true;
+                    break;
+                }
+            }
+            if (!hasCourse) {
+                e.preventDefault();
+                alert('Please select at least one course.');
+            }
+            // Check credit total
+            let totalCredits = 0;
+            const uniqueCourses = new Set();
+            for (let i = 1; i <= courseCount; i++) {
+                const select = document.getElementById(`course${i}`);
+                if (select && select.value && !uniqueCourses.has(select.value)) {
+                    const credits = parseInt(select.options[select.selectedIndex].getAttribute('data-credits')) || 0;
+                    totalCredits += credits;
+                    uniqueCourses.add(select.value);
+                }
+            }
+            if (totalCredits > 20) {
+                e.preventDefault();
+                alert('Total credits exceed 20. Please select fewer courses.');
+            }
+        });
+    
+        // Initialize credit total on page load
+        updateCreditTotal();
+    </script>
+</body>
+</html>
